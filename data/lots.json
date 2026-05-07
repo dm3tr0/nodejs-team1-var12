@@ -4,7 +4,7 @@
     "title": "Антикварний годинник XIX ст.",
     "description": "Рідкісний кишеньковий годинник у срібному корпусі з гравіюванням. Механізм у відмінному стані, повністю робочий.",
     "startPrice": 5000,
-    "currentPrice": 7000,
+    "currentPrice": 6000,
     "ownerId": "user-002",
     "ownerName": "Дмитро І.",
     "status": "active",
@@ -28,12 +28,6 @@
         "bidderName": "В'ячеслав",
         "amount": 6000,
         "createdAt": "2026-05-01T09:30:00Z"
-      },
-      {
-        "bidderId": "user-001",
-        "bidderName": "Дмитро Р.",
-        "amount": 7000,
-        "createdAt": "2026-05-07T18:46:10.683Z"
       }
     ]
   },
@@ -89,7 +83,7 @@
     "title": "Діамантове кольє XVIII ст.",
     "description": "Розкішне ювелірне кольє з діамантами загальною вагою 8.5 карат. Золото 750 проби. Справжня рідкість.",
     "startPrice": 250000,
-    "currentPrice": 6000016,
+    "currentPrice": 6000019,
     "ownerId": "user-004",
     "ownerName": "В'ячеслав",
     "status": "active",
@@ -125,6 +119,12 @@
         "bidderName": "Дмитро Р.",
         "amount": 6000016,
         "createdAt": "2026-05-06T19:18:35.512Z"
+      },
+      {
+        "bidderId": "user-001",
+        "bidderName": "Дмитро Р.",
+        "amount": 6000019,
+        "createdAt": "2026-05-07T18:11:53.823Z"
       }
     ]
   },

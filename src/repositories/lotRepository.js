@@ -1,120 +1,279 @@
 /**
- * LotRepository — рівень доступу до даних (заглушка)
- * Демонструє 4 підходи до вводу-виводу:
- *  1. Синхронний
- *  2. Асинхронний з callback
- *  3. Асинхронний з Promise
- *  4. Асинхронний з async/await
+ * src/repositories/lotRepository.js
+ *
+ * Репозиторій лотів — працює з MS SQL Server через пул з'єднань.
+ * Публічний API залишився таким самим, як у попередній JSON-версії,
+ * тому lotService.js не потребує змін.
+ *
+ * CRUD для Lots:
+ *   findAll()           — READ (усі)
+ *   findById(id)        — READ (один)
+ *   save(lot)           — CREATE або UPDATE (upsert)
+ *   remove(id)          — DELETE
+ *
+ * Додатково:
+ *   placeBid(lotId, bid) — бізнес-операція з транзакцією:
+ *                          UPDATE lots + INSERT bids атомарно.
+ *                          При помилці — автоматичний ROLLBACK.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { getPool, mysql } = require('../db/pool');
 
-const LOTS_FILE = path.join(__dirname, '../../data/lots.json');
 
-// ─── 1. СИНХРОННИЙ ВВІД-ВИВІД ───────────────────────────────────────────────
-function getAllLotsSync() {
-  const raw = fs.readFileSync(LOTS_FILE, 'utf-8');
-  return JSON.parse(raw);
+// ─── Допоміжна функція: рядок keywords → масив ───────────────
+function parseKeywords(raw) {
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
 }
 
-function saveLotsSync(lots) {
-  fs.writeFileSync(LOTS_FILE, JSON.stringify(lots, null, 2), 'utf-8');
+// ─── Допоміжна функція: рядок бази → об'єкт лоту ────────────
+function rowToLot(row) {
+  return {
+    id:           row.id,
+    title:        row.title,
+    description:  row.description,
+    startPrice:   Number(row.start_price),
+    currentPrice: Number(row.current_price),
+    ownerId:      row.owner_id,
+    ownerName:    row.owner_name,
+    status:       row.status,
+    keywords:     parseKeywords(row.keywords),
+    imageUrl:     row.image_url,
+    createdAt:    row.created_at,
+    bids:         [],           // заповнюється окремим запитом
+  };
 }
 
-// ─── 2. АСИНХРОННИЙ З CALLBACK ───────────────────────────────────────────────
-function getAllLotsCallback(callback) {
-  fs.readFile(LOTS_FILE, 'utf-8', (err, data) => {
-    if (err) return callback(err, null);
-    try {
-      callback(null, JSON.parse(data));
-    } catch (parseErr) {
-      callback(parseErr, null);
-    }
-  });
-}
+// ─── Допоміжна функція: завантажити ставки для списку lot_id ─
+async function loadBids(pool, lotIds) {
+  if (!lotIds.length) return {};
 
-function saveLotsCallback(lots, callback) {
-  fs.writeFile(LOTS_FILE, JSON.stringify(lots, null, 2), 'utf-8', callback);
-}
+  // будуємо IN-список через MySQL placeholders (?, ?, ...)
+  const placeholders = lotIds.map(() => '?').join(',');
 
-// ─── 3. АСИНХРОННИЙ З PROMISE ─────────────────────────────────────────────
-function getAllLotsPromise() {
-  return new Promise((resolve, reject) => {
-    fs.readFile(LOTS_FILE, 'utf-8', (err, data) => {
-      if (err) return reject(err);
-      try {
-        resolve(JSON.parse(data));
-      } catch (e) {
-        reject(e);
-      }
+  const result = await pool.query(`
+    SELECT lot_id, bidder_id, bidder_name, amount, created_at
+    FROM   Bids
+    WHERE  lot_id IN (${placeholders})
+    ORDER  BY created_at ASC
+  `, lotIds);
+
+  const map = {};
+  for (const row of result[0]) {
+    if (!map[row.lot_id]) map[row.lot_id] = [];
+    map[row.lot_id].push({
+      bidderId:   row.bidder_id,
+      bidderName: row.bidder_name,
+      amount:     Number(row.amount),
+      createdAt:  row.created_at,
     });
-  });
-}
-
-function saveLotsPromise(lots) {
-  return new Promise((resolve, reject) => {
-    fs.writeFile(LOTS_FILE, JSON.stringify(lots, null, 2), 'utf-8', (err) => {
-      if (err) return reject(err);
-      resolve();
-    });
-  });
-}
-
-// ─── 4. АСИНХРОННИЙ З ASYNC/AWAIT ─────────────────────────────────────────
-async function getAllLotsAsync() {
-  const data = await fs.promises.readFile(LOTS_FILE, 'utf-8');
-  return JSON.parse(data);
-}
-
-async function saveLotsAsync(lots) {
-  await fs.promises.writeFile(LOTS_FILE, JSON.stringify(lots, null, 2), 'utf-8');
-}
-
-// ─── ПУБЛІЧНИЙ API РЕПОЗИТОРІЮ ────────────────────────────────────────────
-// Основний інтерфейс: використовуємо async/await (найчистіший підхід),
-// але зберігаємо всі варіанти для демонстрації
-
-async function findAll() {
-  return getAllLotsAsync();
-}
-
-async function findById(id) {
-  const lots = await getAllLotsAsync();
-  return lots.find(lot => lot.id === id) || null;
-}
-
-async function save(lot) {
-  const lots = await getAllLotsAsync();
-  const idx = lots.findIndex(l => l.id === lot.id);
-  if (idx >= 0) {
-    lots[idx] = lot;
-  } else {
-    lots.push(lot);
   }
-  await saveLotsAsync(lots);
+  return map;
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// READ — отримати всі лоти
+// ═══════════════════════════════════════════════════════════════
+async function findAll() {
+  const pool   = await getPool();
+  const result = await pool.query(`
+    SELECT id, title, description, start_price, current_price,
+           owner_id, owner_name, status, keywords, image_url, created_at
+    FROM   Lots
+    ORDER  BY created_at DESC
+  `);
+
+  const lots   = result[0].map(rowToLot);
+  const lotIds = lots.map(l => l.id);
+  const bidsMap = await loadBids(pool, lotIds);
+
+  for (const lot of lots) {
+    lot.bids = bidsMap[lot.id] || [];
+  }
+  return lots;
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// READ — знайти один лот за id
+// ═══════════════════════════════════════════════════════════════
+async function findById(id) {
+  const pool   = await getPool();
+  const result = await pool.query(`
+      SELECT id, title, description, start_price, current_price,
+             owner_id, owner_name, status, keywords, image_url, created_at
+      FROM   Lots
+      WHERE  id = ?
+    `, [id]);
+
+  if (!result[0].length) return null;
+
+  const lot = rowToLot(result[0][0]);
+
+  const bidsResult = await pool.query(`
+      SELECT bidder_id, bidder_name, amount, created_at
+      FROM   Bids
+      WHERE  lot_id = ?
+      ORDER  BY created_at ASC
+    `, [id]);
+
+  lot.bids = bidsResult[0].map(r => ({
+    bidderId:   r.bidder_id,
+    bidderName: r.bidder_name,
+    amount:     Number(r.amount),
+    createdAt:  r.created_at,
+  }));
+
   return lot;
 }
 
-async function remove(id) {
-  const lots = await getAllLotsAsync();
-  const filtered = lots.filter(l => l.id !== id);
-  await saveLotsAsync(filtered);
+
+// ═══════════════════════════════════════════════════════════════
+// CREATE / UPDATE — зберегти лот (upsert)
+// ═══════════════════════════════════════════════════════════════
+async function save(lot) {
+  const pool = await getPool();
+
+  // Перевіряємо чи існує запис
+  const exists = await pool.query('SELECT 1 FROM Lots WHERE id = ?', [lot.id]);
+
+  const keywordsJson = JSON.stringify(lot.keywords || []);
+
+  if (exists[0].length === 0) {
+    // ── CREATE ────────────────────────────────────────────────
+    await pool.query(`
+        INSERT INTO Lots
+          (id, title, description, start_price, current_price,
+           owner_id, owner_name, status, keywords, image_url, created_at)
+        VALUES
+          (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        lot.id,
+        lot.title,
+        lot.description,
+        lot.startPrice,
+        lot.currentPrice,
+        lot.ownerId,
+        lot.ownerName,
+        lot.status,
+        keywordsJson,
+        lot.imageUrl || null,
+        new Date(lot.createdAt)
+      ]);
+  } else {
+    // ── UPDATE ────────────────────────────────────────────────
+    await pool.query(`
+        UPDATE Lots SET
+          title         = ?,
+          description   = ?,
+          current_price = ?,
+          status        = ?,
+          keywords      = ?,
+          image_url     = ?
+        WHERE id = ?
+      `, [
+        lot.title,
+        lot.description,
+        lot.currentPrice,
+        lot.status,
+        keywordsJson,
+        lot.imageUrl || null,
+        lot.id
+      ]);
+  }
+
+  return lot;
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// DELETE — видалити лот (каскадно видаляє Bids через ON DELETE CASCADE)
+// ═══════════════════════════════════════════════════════════════
+async function remove(id) {
+  const pool = await getPool();
+  await pool.query('DELETE FROM Lots WHERE id = ?', [id]);
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// ТРАНЗАКЦІЯ — зробити ставку
+//
+// Бізнес-правила:
+//   1. Лот існує і активний
+//   2. Власник не може ставити на свій лот
+//   3. Сума більша за поточну ціну
+//
+// Якщо все ок  → COMMIT (UPDATE Lots + INSERT Bids)
+// Якщо помилка → ROLLBACK (БД залишається незмінною)
+// ═══════════════════════════════════════════════════════════════
+async function placeBid(lotId, { bidderId, bidderName, amount }) {
+  const pool = await getPool();
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    // 1. Зчитати поточний стан лоту (з блокуванням рядка)
+    const lotResult = await connection.query(`
+      SELECT id, owner_id, status, current_price
+      FROM   Lots
+      WHERE  id = ? FOR UPDATE
+    `, [lotId]);
+
+    if (!lotResult[0].length) {
+      throw new Error('Лот не знайдено');
+    }
+
+    const lot = lotResult[0][0];
+
+    // 2. Бізнес-валідація (усередині транзакції)
+    if (lot.status !== 'active') {
+      throw new Error('Торги на цьому лоті не активні');
+    }
+    if (lot.owner_id === bidderId) {
+      throw new Error('Власник не може робити ставки на свій лот');
+    }
+
+    const bidAmount = Number(amount);
+    if (!Number.isInteger(bidAmount) || bidAmount <= Number(lot.current_price)) {
+      throw new Error(`Ставка має бути цілим числом, більшим за ${lot.current_price} грн`);
+    }
+
+    // 3. Оновити поточну ціну лоту
+    await connection.query(
+      'UPDATE Lots SET current_price = ? WHERE id = ?',
+      [bidAmount, lotId]
+    );
+
+    // 4. Додати ставку
+    await connection.query(`
+      INSERT INTO Bids (lot_id, bidder_id, bidder_name, amount, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `, [lotId, bidderId, bidderName, bidAmount, new Date()]);
+
+    // ✅ COMMIT — обидві операції виконані успішно
+    await connection.commit();
+    console.log(`✅ Ставку ${bidAmount} грн на лот ${lotId} підтверджено`);
+
+  } catch (err) {
+    // ❌ ROLLBACK — будь-яка помилка відкочує всі зміни
+    try { await connection.rollback(); } catch (_) {}
+    console.error(`❌ Ставку відкинуто: ${err.message}`);
+    throw err; // пробрасуємо далі — контролер покаже помилку користувачу
+  } finally {
+    connection.release();
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// Публічний API (той самий інтерфейс, що і JSON-версія)
+// ═══════════════════════════════════════════════════════════════
 module.exports = {
-  // Основний API
   findAll,
   findById,
   save,
   remove,
-  // Варіанти для демонстрації
-  getAllLotsSync,
-  saveLotsSync,
-  getAllLotsCallback,
-  saveLotsCallback,
-  getAllLotsPromise,
-  saveLotsPromise,
-  getAllLotsAsync,
-  saveLotsAsync,
+  placeBid,     // нова — замінює логіку в lotService
 };

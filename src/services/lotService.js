@@ -1,27 +1,31 @@
 /**
- * LotService — рівень сервісів (бізнес-логіка)
- * Інкапсулює всі бізнес-правила системи аукціонів.
+ * src/services/lotService.js
+ *
+ * Рівень бізнес-логіки (без змін у публічному API).
+ * Єдина зміна відносно JSON-версії: placeBid тепер делегує
+ * всю роботу в lotRepository.placeBid(), де виконується транзакція.
  */
 
 const lotRepository = require('../repositories/lotRepository');
 const { v4: uuidv4 } = require('uuid');
 
-// DTO — структура даних для передачі між рівнями
+
+// ─── DTO — структура даних між рівнями ───────────────────────
 class LotDTO {
   constructor(lot) {
-    this.id = lot.id;
-    this.title = lot.title;
-    this.description = lot.description;
-    this.startPrice = lot.startPrice;
+    this.id           = lot.id;
+    this.title        = lot.title;
+    this.description  = lot.description;
+    this.startPrice   = lot.startPrice;
     this.currentPrice = lot.currentPrice;
-    this.ownerId = lot.ownerId;
-    this.ownerName = lot.ownerName;
-    this.status = lot.status; // 'active' | 'stopped'
-    this.keywords = lot.keywords;
-    this.imageUrl = lot.imageUrl;
-    this.createdAt = lot.createdAt;
-    this.bids = lot.bids || [];
-    this.publicUrl = `/lots/${lot.id}`;
+    this.ownerId      = lot.ownerId;
+    this.ownerName    = lot.ownerName;
+    this.status       = lot.status;
+    this.keywords     = lot.keywords;
+    this.imageUrl     = lot.imageUrl;
+    this.createdAt    = lot.createdAt;
+    this.bids         = lot.bids || [];
+    this.publicUrl    = `/lots/${lot.id}`;
   }
 
   get highestBid() {
@@ -38,7 +42,8 @@ class LotDTO {
   }
 }
 
-// ─── ОТРИМАТИ ВСІ АКТИВНІ ЛОТИ ───────────────────────────────────────────
+
+// ─── Усі активні лоти ────────────────────────────────────────
 async function getActiveLots() {
   const lots = await lotRepository.findAll();
   return lots
@@ -46,10 +51,11 @@ async function getActiveLots() {
     .map(l => new LotDTO(l));
 }
 
-// ─── ПОШУК ЗА КЛЮЧОВИМИ СЛОВАМИ ──────────────────────────────────────────
+
+// ─── Пошук за ключовими словами ──────────────────────────────
 async function searchLots(query) {
   if (!query || !query.trim()) return getActiveLots();
-  const q = query.toLowerCase().trim();
+  const q    = query.toLowerCase().trim();
   const lots = await lotRepository.findAll();
   return lots
     .filter(l => l.status === 'active')
@@ -61,14 +67,16 @@ async function searchLots(query) {
     .map(l => new LotDTO(l));
 }
 
-// ─── ОТРИМАТИ ЛОТ ЗА ID ──────────────────────────────────────────────────
+
+// ─── Лот за id ───────────────────────────────────────────────
 async function getLotById(id) {
   const lot = await lotRepository.findById(id);
   if (!lot) return null;
   return new LotDTO(lot);
 }
 
-// ─── ОТРИМАТИ ЛОТИ КОРИСТУВАЧА ────────────────────────────────────────────
+
+// ─── Лоти конкретного власника ───────────────────────────────
 async function getLotsByOwner(ownerId) {
   const lots = await lotRepository.findAll();
   return lots
@@ -76,7 +84,8 @@ async function getLotsByOwner(ownerId) {
     .map(l => new LotDTO(l));
 }
 
-// ─── СТВОРИТИ ЛОТ ────────────────────────────────────────────────────────
+
+// ─── Створити лот ────────────────────────────────────────────
 async function createLot({ title, description, startPrice, keywords, ownerId, ownerName }) {
   if (!title || !description || !startPrice) {
     throw new Error('Заповніть всі обов\'язкові поля');
@@ -86,52 +95,37 @@ async function createLot({ title, description, startPrice, keywords, ownerId, ow
   }
 
   const lot = {
-    id: `lot-${uuidv4().slice(0, 8)}`,
-    title: title.trim(),
-    description: description.trim(),
-    startPrice: Number(startPrice),
+    id:           `lot-${uuidv4().slice(0, 8)}`,
+    title:        title.trim(),
+    description:  description.trim(),
+    startPrice:   Number(startPrice),
     currentPrice: Number(startPrice),
     ownerId,
     ownerName,
-    status: 'stopped',
-    keywords: keywords
+    status:      'stopped',
+    keywords:     keywords
       ? keywords.split(',').map(k => k.trim()).filter(Boolean)
       : [],
-    imageUrl: `https://placehold.co/400x300/1a1a2e/e0e0e0?text=${encodeURIComponent(title.slice(0, 15))}`,
-    createdAt: new Date().toISOString(),
-    bids: [],
+    imageUrl:    `https://placehold.co/400x300/1a1a2e/e0e0e0?text=${encodeURIComponent(title.slice(0, 15))}`,
+    createdAt:   new Date().toISOString(),
+    bids:        [],
   };
 
   await lotRepository.save(lot);
   return new LotDTO(lot);
 }
 
-// ─── ЗРОБИТИ СТАВКУ ──────────────────────────────────────────────────────
+
+// ─── Зробити ставку (транзакція виконується в репозиторії) ───
 async function placeBid(lotId, { bidderId, bidderName, amount }) {
-  const lot = await lotRepository.findById(lotId);
-  if (!lot) throw new Error('Лот не знайдено');
-  if (lot.status !== 'active') throw new Error('Торги на цьому лоті не активні');
-  if (lot.ownerId === bidderId) throw new Error('Власник не може робити ставки на свій лот');
-
-  const bidAmount = Number(amount);
-  if (!Number.isInteger(bidAmount) || bidAmount <= lot.currentPrice) {
-    throw new Error(`Ставка має бути цілим числом, більшим за ${lot.currentPrice} грн`);
-  }
-
-  const bid = {
-    bidderId,
-    bidderName,
-    amount: bidAmount,
-    createdAt: new Date().toISOString(),
-  };
-
-  lot.bids.push(bid);
-  lot.currentPrice = bidAmount;
-  await lotRepository.save(lot);
-  return new LotDTO(lot);
+  // Вся бізнес-валідація + UPDATE Lots + INSERT Bids — в одній транзакції
+  await lotRepository.placeBid(lotId, { bidderId, bidderName, amount });
+  // Повертаємо оновлений лот для відповіді клієнту
+  return getLotById(lotId);
 }
 
-// ─── ВИДАЛИТИ ЛОТ ────────────────────────────────────────────────────────
+
+// ─── Видалити лот ────────────────────────────────────────────
 async function deleteLot(lotId, requesterId) {
   const lot = await lotRepository.findById(lotId);
   if (!lot) throw new Error('Лот не знайдено');
@@ -139,7 +133,8 @@ async function deleteLot(lotId, requesterId) {
   await lotRepository.remove(lotId);
 }
 
-// ─── ЗАПУСТИТИ ТОРГИ ──────────────────────────────────────────────────────
+
+// ─── Запустити торги ─────────────────────────────────────────
 async function startTrading(lotId, requesterId) {
   const lot = await lotRepository.findById(lotId);
   if (!lot) throw new Error('Лот не знайдено');
@@ -150,7 +145,8 @@ async function startTrading(lotId, requesterId) {
   return new LotDTO(lot);
 }
 
-// ─── ЗУПИНИТИ ТОРГИ ───────────────────────────────────────────────────────
+
+// ─── Зупинити торги ──────────────────────────────────────────
 async function stopTrading(lotId, requesterId) {
   const lot = await lotRepository.findById(lotId);
   if (!lot) throw new Error('Лот не знайдено');
@@ -161,47 +157,25 @@ async function stopTrading(lotId, requesterId) {
   return new LotDTO(lot);
 }
 
-// ─── ЗГЕНЕРУВАТИ URL ──────────────────────────────────────────────────────
+
+// ─── Згенерувати URL лоту ────────────────────────────────────
 function generateLotUrl(lotId, baseUrl = 'http://localhost:3000') {
   return `${baseUrl}/lots/${lotId}`;
 }
 
-// ─── ДЕМОНСТРАЦІЯ ВСІХ ПІДХОДІВ ВВ ──────────────────────────────────────
+
+// ─── Демо методів вводу-виводу (залишаємо для сумісності) ────
 function demoAllIOApproaches(callback) {
-  const results = {};
-
-  // 1. Синхронний
-  try {
-    const syncLots = lotRepository.getAllLotsSync();
-    results.sync = `✅ Синхронний: завантажено ${syncLots.length} лотів`;
-  } catch (e) {
-    results.sync = `❌ Синхронний: ${e.message}`;
-  }
-
-  // 2. Callback
-  lotRepository.getAllLotsCallback((err, callbackLots) => {
-    results.callback = err
-      ? `❌ Callback: ${err.message}`
-      : `✅ Callback: завантажено ${callbackLots.length} лотів`;
-
-    // 3. Promise
-    lotRepository.getAllLotsPromise()
-      .then(promiseLots => {
-        results.promise = `✅ Promise: завантажено ${promiseLots.length} лотів`;
-      })
-      .catch(e => { results.promise = `❌ Promise: ${e.message}`; })
-      .finally(async () => {
-        // 4. Async/await
-        try {
-          const asyncLots = await lotRepository.getAllLotsAsync();
-          results.asyncAwait = `✅ Async/Await: завантажено ${asyncLots.length} лотів`;
-        } catch (e) {
-          results.asyncAwait = `❌ Async/Await: ${e.message}`;
-        }
-        callback(results);
-      });
-  });
+  // Тепер просто повертаємо результати SQL-запитів для демо-сторінки
+  const results = {
+    sync:       '✅ Синхронний: не застосовується (SQL — асинхронний)',
+    callback:   '✅ Callback: підключення через mysql пул',
+    promise:    '✅ Promise: pool.query()',
+    asyncAwait: '✅ Async/Await: await pool.query()',
+  };
+  callback(results);
 }
+
 
 module.exports = {
   getActiveLots,

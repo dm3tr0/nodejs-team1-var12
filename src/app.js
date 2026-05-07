@@ -1,30 +1,52 @@
-const express = require('express');
-const path = require('path');
+require('dotenv').config();
+const express    = require('express');
+const path       = require('path');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
-const routes = require('./routes/index');
+const routes     = require('./routes/index');
+const { getPool, closePool } = require('./db/pool');
+const { initializeDatabase } = require('./db/init');
 
-const app = express();
+const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ─── НАЛАШТУВАННЯ ШАБЛОНІЗАТОРА EJS ──────────────────────────────────────
+// ─── Шаблонізатор EJS ─────────────────────────────────────────
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '../views'));
 
-// ─── MIDDLEWARE ────────────────────────────────────────────────────────────
+// ─── Middleware ───────────────────────────────────────────────
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
-// ─── МАРШРУТИ ─────────────────────────────────────────────────────────────
+// ─── Маршрути ─────────────────────────────────────────────────
 app.use('/', routes);
 
-// ─── ОБРОБНИКИ ПОМИЛОК ────────────────────────────────────────────────────
+// ─── Обробники помилок ────────────────────────────────────────
 app.use(notFound);
 app.use(errorHandler);
 
-// ─── ЗАПУСК СЕРВЕРА ───────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`🔨 Аукціон запущено: http://localhost:${PORT}`);
-});
+// ─── Запуск: спочатку ініціалізуємо БД, потім слухаємо ─────
+async function start() {
+  try {
+    // Initialize database and tables
+    await initializeDatabase();
+    
+    // Test connection
+    await getPool();
+    
+    app.listen(PORT, () => {
+      console.log(`🔨 АукціонUA запущено: http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error('❌ Не вдалося підключитися до MySQL:', err.message);
+    process.exit(1);
+  }
+}
+
+// ─── Graceful shutdown ────────────────────────────────────────
+process.on('SIGINT',  async () => { await closePool(); process.exit(0); });
+process.on('SIGTERM', async () => { await closePool(); process.exit(0); });
+
+start();
 
 module.exports = app;

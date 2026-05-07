@@ -1,16 +1,30 @@
-const fs = require('fs');
-const path = require('path');
+/**
+ * src/repositories/userRepository.js
+ *
+ * Репозиторій користувачів для MS SQL Server.
+ * Публічний API збігається з попередньою JSON-версією.
+ */
 
-const USERS_FILE = path.join(__dirname, '../../data/users.json');
+const { getPool, mysql } = require('../db/pool');
+
 
 async function findAll() {
-  const data = await fs.promises.readFile(USERS_FILE, 'utf-8');
-  return JSON.parse(data);
+  const pool   = await getPool();
+  const result = await pool.query(
+    'SELECT id, name, email FROM Users ORDER BY name'
+  );
+  return result[0];
 }
 
+
 async function findById(id) {
-  const users = await findAll();
-  return users.find(u => u.id === id) || null;
+  const pool   = await getPool();
+  const result = await pool.query(
+    'SELECT id, name, email FROM Users WHERE id = ?', [id]
+  );
+
+  return result[0][0] || null;
 }
+
 
 module.exports = { findAll, findById };
