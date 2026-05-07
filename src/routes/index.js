@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const lotController = require('../controllers/lotController');
+const ormRoutes = require('./orm');
 
 // Головна сторінка — список активних лотів + пошук
 router.get('/', lotController.index);
@@ -31,5 +32,8 @@ router.post('/lots/:id/start', lotController.startTrading);
 
 // Зупинити торги
 router.post('/lots/:id/stop', lotController.stopTrading);
+
+// ORM demonstration routes
+router.use('/orm', ormRoutes);
 
 module.exports = router;
