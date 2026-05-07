@@ -12,11 +12,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // "База даних" нашої бригади для демонстрації динамічного контенту
 const brigadeMembers = {
-    '1': { name: 'Дмитро Рябокінь', role: 'Frontend Developer', skills: ['HTML', 'CSS', 'JavaScript']},
+    '1': { name: 'Дмитро Рябокінь', role: 'Backend Developer', skills: ['NodeJS']},
     '2': { name: 'Дмитро Іваницький', role: 'Team Lead', skills: ['Git', 'NodeJS']},
     '3': { name: 'Анатолій', role: 'Frontend Developer', skills: ['HTML', 'CSS', 'JavaScript'] },
-    '4': { name: 'Вʼячеслав', role: 'Frontend Developer', skills: ['HTML', 'CSS', 'JavaScript'] },
-    '5': { name: 'Денис', role: 'Frontend Developer', skills: ['HTML', 'CSS', 'JavaScript'] },
+    '4': { name: 'Денис', role: 'FullStack Developer', skills: ['NodeJS', 'HTML', 'CSS', 'JavaScript'] },
 };
 
 // Динамічний маршрут (генерується через EJS)
