@@ -1,0 +1,80 @@
+<%- include('../partials/header') %>
+
+<div class="form-page">
+  <div class="form-page__header">
+    <a href="/" class="back-link">← До списку</a>
+    <h1 class="form-page__title">Створити новий лот</h1>
+    <p class="form-page__sub">Станьте хазяїном аукціону</p>
+  </div>
+
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert--error"><%= error %></div>
+  <% } %>
+
+  <form action="/lots" method="POST" class="lot-form">
+    <div class="form-group">
+      <label class="form-label" for="title">Назва лоту *</label>
+      <input
+        type="text"
+        id="title"
+        name="title"
+        class="form-input"
+        placeholder="Напр.: Антикварний годинник XIX ст."
+        required
+        maxlength="100"
+      >
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="description">Опис *</label>
+      <textarea
+        id="description"
+        name="description"
+        class="form-input form-textarea"
+        placeholder="Детальний опис лоту: матеріали, стан, історія..."
+        rows="5"
+        required
+      ></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="startPrice">Стартова ціна (₴) *</label>
+      <input
+        type="number"
+        id="startPrice"
+        name="startPrice"
+        class="form-input"
+        placeholder="5000"
+        min="1"
+        step="100"
+        required
+      >
+      <span class="form-hint">Мінімальна ставка починатиметься від цієї ціни</span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="keywords">Ключові слова</label>
+      <input
+        type="text"
+        id="keywords"
+        name="keywords"
+        class="form-input"
+        placeholder="антикваріат, срібло, годинник (через кому)"
+      >
+      <span class="form-hint">Допоможуть знайти ваш лот у пошуку</span>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn--primary btn--lg">
+        🔨 Створити лот
+      </button>
+      <a href="/" class="btn btn--ghost btn--lg">Скасувати</a>
+    </div>
+
+    <p class="form-note">
+      * Після створення лот буде у стані «зупинено». Запустіть торги зі сторінки лоту.
+    </p>
+  </form>
+</div>
+
+<%- include('../partials/footer') %>

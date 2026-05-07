@@ -1,0 +1,118 @@
+<%- include('../partials/header') %>
+
+<div class="form-page">
+  <div class="form-page__header">
+    <a href="/" class="back-link">← Назад</a>
+    <h1 class="form-page__title">Методи вводу-виводу</h1>
+    <p class="form-page__sub">Усі 4 підходи до роботи з файлами у Node.js</p>
+  </div>
+
+  <div class="io-demo-grid">
+    <div class="io-card io-card--sync">
+      <div class="io-card__header">
+        <span class="io-card__num">1</span>
+        <h3>Синхронний ввід-вивід</h3>
+      </div>
+      <code class="io-card__code">fs.readFileSync(path, 'utf-8')</code>
+      <div class="io-card__result <%= results.sync.startsWith('✅') ? 'io-card__result--ok' : 'io-card__result--err' %>">
+        <%= results.sync %>
+      </div>
+      <p class="io-card__desc">
+        Блокує Event Loop до завершення операції. Простий для розуміння,
+        але не підходить для серверів з великим навантаженням.
+      </p>
+    </div>
+
+    <div class="io-card io-card--callback">
+      <div class="io-card__header">
+        <span class="io-card__num">2</span>
+        <h3>Callback (зворотний виклик)</h3>
+      </div>
+      <code class="io-card__code">fs.readFile(path, 'utf-8', (err, data) => { ... })</code>
+      <div class="io-card__result <%= results.callback.startsWith('✅') ? 'io-card__result--ok' : 'io-card__result--err' %>">
+        <%= results.callback %>
+      </div>
+      <p class="io-card__desc">
+        Асинхронний, не блокує Event Loop. Але може призвести до
+        «пекла колбеків» (callback hell) при вкладених операціях.
+      </p>
+    </div>
+
+    <div class="io-card io-card--promise">
+      <div class="io-card__header">
+        <span class="io-card__num">3</span>
+        <h3>Promise (проміс)</h3>
+      </div>
+      <code class="io-card__code">new Promise((resolve, reject) => { ... }).then(...)</code>
+      <div class="io-card__result <%= results.promise && results.promise.startsWith('✅') ? 'io-card__result--ok' : 'io-card__result--err' %>">
+        <%= results.promise || 'Виконується...' %>
+      </div>
+      <p class="io-card__desc">
+        Вирішує проблему callback hell. Дозволяє ланцюжки .then().catch().finally()
+        для зручної обробки асинхронних операцій.
+      </p>
+    </div>
+
+    <div class="io-card io-card--async">
+      <div class="io-card__header">
+        <span class="io-card__num">4</span>
+        <h3>Async / Await</h3>
+      </div>
+      <code class="io-card__code">const data = await fs.promises.readFile(path, 'utf-8')</code>
+      <div class="io-card__result <%= results.asyncAwait && results.asyncAwait.startsWith('✅') ? 'io-card__result--ok' : 'io-card__result--err' %>">
+        <%= results.asyncAwait || 'Виконується...' %>
+      </div>
+      <p class="io-card__desc">
+        Синтаксичний цукор над Promise. Найчистіший і найчитабельніший підхід.
+        Обробка помилок через стандартний try/catch.
+      </p>
+    </div>
+  </div>
+
+  <div class="io-summary">
+    <h2>Порівняльна таблиця</h2>
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Підхід</th>
+          <th>Блокує Event Loop</th>
+          <th>Читабельність</th>
+          <th>Обробка помилок</th>
+          <th>Рекомендується</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Синхронний</strong></td>
+          <td class="td--bad">✗ Так</td>
+          <td class="td--good">✓ Висока</td>
+          <td>try/catch</td>
+          <td class="td--bad">Тільки для скриптів</td>
+        </tr>
+        <tr>
+          <td><strong>Callback</strong></td>
+          <td class="td--good">✓ Ні</td>
+          <td class="td--bad">✗ Низька</td>
+          <td>err-first pattern</td>
+          <td class="td--bad">Застарілий стиль</td>
+        </tr>
+        <tr>
+          <td><strong>Promise</strong></td>
+          <td class="td--good">✓ Ні</td>
+          <td class="td--mid">~ Середня</td>
+          <td>.catch()</td>
+          <td class="td--mid">Прийнятно</td>
+        </tr>
+        <tr>
+          <td><strong>Async/Await</strong></td>
+          <td class="td--good">✓ Ні</td>
+          <td class="td--good">✓ Висока</td>
+          <td>try/catch</td>
+          <td class="td--good">✓ Рекомендовано</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,151 @@
+[
+  {
+    "id": "lot-001",
+    "title": "Антикварний годинник XIX ст.",
+    "description": "Рідкісний кишеньковий годинник у срібному корпусі з гравіюванням. Механізм у відмінному стані, повністю робочий.",
+    "startPrice": 5000,
+    "currentPrice": 7000,
+    "ownerId": "user-002",
+    "ownerName": "Дмитро І.",
+    "status": "active",
+    "keywords": [
+      "антикваріат",
+      "годинник",
+      "срібло",
+      "XIX"
+    ],
+    "imageUrl": "https://placehold.co/400x300/1a1a2e/e0e0e0?text=Годинник",
+    "createdAt": "2026-04-20T10:00:00Z",
+    "bids": [
+      {
+        "bidderId": "user-003",
+        "bidderName": "Анатолій",
+        "amount": 5500,
+        "createdAt": "2026-04-25T14:00:00Z"
+      },
+      {
+        "bidderId": "user-004",
+        "bidderName": "В'ячеслав",
+        "amount": 6000,
+        "createdAt": "2026-05-01T09:30:00Z"
+      },
+      {
+        "bidderId": "user-001",
+        "bidderName": "Дмитро Р.",
+        "amount": 7000,
+        "createdAt": "2026-05-07T18:46:10.683Z"
+      }
+    ]
+  },
+  {
+    "id": "lot-002",
+    "title": "Картина «Карпатський пейзаж»",
+    "description": "Олійний живопис на полотні, розмір 80x60 см. Автор — Василь Мельник, 1985 рік. Сертифікат автентичності додається.",
+    "startPrice": 12000,
+    "currentPrice": 13000,
+    "ownerId": "user-001",
+    "ownerName": "Дмитро Р.",
+    "status": "active",
+    "keywords": [
+      "картина",
+      "живопис",
+      "олія",
+      "Карпати",
+      "мистецтво"
+    ],
+    "imageUrl": "https://placehold.co/400x300/2d4a22/e8f5e9?text=Картина",
+    "createdAt": "2026-04-28T08:00:00Z",
+    "bids": [
+      {
+        "bidderId": "user-005",
+        "bidderName": "Денис",
+        "amount": 13000,
+        "createdAt": "2026-05-02T11:00:00Z"
+      }
+    ]
+  },
+  {
+    "id": "lot-003",
+    "title": "Колекційний автомобіль 1967 Ford Mustang",
+    "description": "Легендарний Ford Mustang 1967 року у відмінному стані після повної реставрації. Оригінальний двигун V8, нова обивка.",
+    "startPrice": 850000,
+    "currentPrice": 850000,
+    "ownerId": "user-003",
+    "ownerName": "Анатолій",
+    "status": "stopped",
+    "keywords": [
+      "автомобіль",
+      "Ford",
+      "Mustang",
+      "колекція",
+      "реставрація"
+    ],
+    "imageUrl": "https://placehold.co/400x300/4a1010/fce4ec?text=Mustang+1967",
+    "createdAt": "2026-04-15T15:00:00Z",
+    "bids": []
+  },
+  {
+    "id": "lot-004",
+    "title": "Діамантове кольє XVIII ст.",
+    "description": "Розкішне ювелірне кольє з діамантами загальною вагою 8.5 карат. Золото 750 проби. Справжня рідкість.",
+    "startPrice": 250000,
+    "currentPrice": 6000016,
+    "ownerId": "user-004",
+    "ownerName": "В'ячеслав",
+    "status": "active",
+    "keywords": [
+      "ювелірні прикраси",
+      "діаманти",
+      "золото",
+      "антикваріат"
+    ],
+    "imageUrl": "https://placehold.co/400x300/3d1a78/f3e5f5?text=Кольє",
+    "createdAt": "2026-04-30T12:00:00Z",
+    "bids": [
+      {
+        "bidderId": "user-001",
+        "bidderName": "Дмитро Р.",
+        "amount": 260000,
+        "createdAt": "2026-05-03T10:00:00Z"
+      },
+      {
+        "bidderId": "user-005",
+        "bidderName": "Денис",
+        "amount": 275000,
+        "createdAt": "2026-05-04T14:00:00Z"
+      },
+      {
+        "bidderId": "user-001",
+        "bidderName": "Дмитро Р.",
+        "amount": 6000000,
+        "createdAt": "2026-05-06T19:18:11.624Z"
+      },
+      {
+        "bidderId": "user-001",
+        "bidderName": "Дмитро Р.",
+        "amount": 6000016,
+        "createdAt": "2026-05-06T19:18:35.512Z"
+      }
+    ]
+  },
+  {
+    "id": "lot-005",
+    "title": "Стародруки — Біблія 1580 р.",
+    "description": "Рукописна Біблія 1580 року видання. Шкіряна оправа, всі сторінки збережені. Унікальний артефакт.",
+    "startPrice": 180000,
+    "currentPrice": 180000,
+    "ownerId": "user-002",
+    "ownerName": "Дмитро І.",
+    "status": "active",
+    "keywords": [
+      "книга",
+      "стародрук",
+      "Біблія",
+      "антикваріат",
+      "рукопис"
+    ],
+    "imageUrl": "https://placehold.co/400x300/2a1810/efebe9?text=Стародрук",
+    "createdAt": "2026-05-01T09:00:00Z",
+    "bids": []
+  }
+]

@@ -1,0 +1,84 @@
+<%- include('../partials/header') %>
+
+<div class="page-hero">
+  <div class="hero-content">
+    <h1 class="hero-title">Активні аукціони</h1>
+    <p class="hero-sub">Знаходьте унікальні лоти та робіть ставки</p>
+  </div>
+</div>
+
+<% if (typeof message !== 'undefined' && message) { %>
+  <div class="alert alert--success"><%= message %></div>
+<% } %>
+<% if (typeof error !== 'undefined' && error) { %>
+  <div class="alert alert--error"><%= error %></div>
+<% } %>
+
+<section class="search-section">
+  <form class="search-form" action="/" method="GET">
+    <input
+      type="text"
+      name="q"
+      class="search-input"
+      placeholder="Пошук за назвою, описом чи ключовими словами..."
+      value="<%= typeof query !== 'undefined' ? query : '' %>"
+    >
+    <button type="submit" class="btn btn--primary">Знайти</button>
+    <% if (typeof query !== 'undefined' && query) { %>
+      <a href="/" class="btn btn--ghost">✕ Скинути</a>
+    <% } %>
+  </form>
+</section>
+
+<section class="lots-section">
+  <% if (typeof query !== 'undefined' && query) { %>
+    <p class="search-meta">
+      Результати пошуку для «<strong><%= query %></strong>»: знайдено <%= lots.length %> лот(ів)
+    </p>
+  <% } %>
+
+  <% if (lots.length === 0) { %>
+    <div class="empty-state">
+      <div class="empty-icon">🔍</div>
+      <h3>Лотів не знайдено</h3>
+      <p>Спробуйте інший запит або <a href="/lots/new">створіть свій лот</a></p>
+    </div>
+  <% } else { %>
+    <div class="lots-grid">
+      <% lots.forEach(lot => { %>
+        <article class="lot-card">
+          <a href="/lots/<%= lot.id %>" class="lot-card__img-link">
+            <img src="<%= lot.imageUrl %>" alt="<%= lot.title %>" class="lot-card__img">
+            <span class="lot-card__status lot-card__status--<%= lot.status %>">
+              <%= lot.status === 'active' ? '🟢 Активний' : '🔴 Зупинено' %>
+            </span>
+          </a>
+          <div class="lot-card__body">
+            <h3 class="lot-card__title">
+              <a href="/lots/<%= lot.id %>"><%= lot.title %></a>
+            </h3>
+            <p class="lot-card__desc"><%= lot.description.slice(0, 100) %>...</p>
+            <div class="lot-card__keywords">
+              <% (lot.keywords || []).slice(0,3).forEach(kw => { %>
+                <span class="keyword-tag"><%= kw %></span>
+              <% }) %>
+            </div>
+            <div class="lot-card__footer">
+              <div class="lot-card__price">
+                <span class="price-label">
+                  <%= lot.bids.length ? 'Поточна ставка' : 'Стартова ціна' %>
+                </span>
+                <span class="price-value"><%= lot.displayPrice.toLocaleString('uk-UA') %> ₴</span>
+              </div>
+              <div class="lot-card__meta">
+                <span>📊 <%= lot.bidsCount %> ставок</span>
+              </div>
+            </div>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+  <% } %>
+</section>
+
+<%- include('../partials/footer') %>

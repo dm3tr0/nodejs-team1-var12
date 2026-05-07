@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | АукціонUA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">
+      <span class="brand-icon">🔨</span>
+      <span class="brand-text">АукціонUA</span>
+    </a>
+    <div class="navbar-links">
+      <a href="/" class="nav-link">Аукціони</a>
+      <a href="/my-lots" class="nav-link">Мої лоти</a>
+      <a href="/lots/new" class="nav-btn">+ Новий лот</a>
+    </div>
+    <div class="navbar-user">
+      <% if (typeof currentUser !== 'undefined' && currentUser) { %>
+        <span class="user-badge">👤 <%= currentUser.name %></span>
+      <% } %>
+    </div>
+  </nav>
+  <main class="main-content">

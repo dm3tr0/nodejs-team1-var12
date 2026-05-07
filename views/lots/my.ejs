@@ -1,0 +1,74 @@
+<%- include('../partials/header') %>
+
+<div class="page-hero page-hero--sm">
+  <div class="hero-content">
+    <h1 class="hero-title">Мої лоти</h1>
+    <p class="hero-sub">Керуйте своїми аукціонами</p>
+  </div>
+</div>
+
+<% if (typeof message !== 'undefined' && message) { %>
+  <div class="alert alert--success"><%= message %></div>
+<% } %>
+
+<div class="my-lots-header">
+  <a href="/lots/new" class="btn btn--primary">+ Новий лот</a>
+</div>
+
+<% if (lots.length === 0) { %>
+  <div class="empty-state">
+    <div class="empty-icon">📦</div>
+    <h3>У вас ще немає лотів</h3>
+    <p><a href="/lots/new">Створіть перший лот</a> та станьте учасником аукціону</p>
+  </div>
+<% } else { %>
+  <div class="my-lots-table-wrap">
+    <table class="my-lots-table">
+      <thead>
+        <tr>
+          <th>Назва</th>
+          <th>Стартова ціна</th>
+          <th>Поточна ставка</th>
+          <th>Ставок</th>
+          <th>Статус</th>
+          <th>Дії</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% lots.forEach(lot => { %>
+          <tr>
+            <td>
+              <a href="/lots/<%= lot.id %>" class="table-link"><%= lot.title %></a>
+            </td>
+            <td><%= lot.startPrice.toLocaleString('uk-UA') %> ₴</td>
+            <td><%= lot.currentPrice.toLocaleString('uk-UA') %> ₴</td>
+            <td><%= lot.bidsCount %></td>
+            <td>
+              <span class="status-badge status-badge--<%= lot.status %>">
+                <%= lot.status === 'active' ? '🟢 Активний' : '🔴 Зупинено' %>
+              </span>
+            </td>
+            <td class="table-actions">
+              <a href="/lots/<%= lot.id %>" class="btn btn--sm btn--ghost">Переглянути</a>
+              <% if (lot.status === 'stopped') { %>
+                <form action="/lots/<%= lot.id %>/start" method="POST" style="display:inline">
+                  <button class="btn btn--sm btn--success">▶ Запустити</button>
+                </form>
+              <% } else { %>
+                <form action="/lots/<%= lot.id %>/stop" method="POST" style="display:inline">
+                  <button class="btn btn--sm btn--warning">⏸ Стоп</button>
+                </form>
+              <% } %>
+              <form action="/lots/<%= lot.id %>/delete" method="POST" style="display:inline"
+                onsubmit="return confirm('Видалити лот «<%= lot.title %>»?')">
+                <button class="btn btn--sm btn--danger">🗑</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

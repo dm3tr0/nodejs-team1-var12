@@ -1,0 +1,151 @@
+<%- include('../partials/header') %>
+
+<% if (typeof message !== 'undefined' && message) { %>
+  <div class="alert alert--success"><%= message %></div>
+<% } %>
+<% if (typeof error !== 'undefined' && error) { %>
+  <div class="alert alert--error"><%= error %></div>
+<% } %>
+
+<div class="lot-detail">
+  <div class="lot-detail__back">
+    <a href="/" class="back-link">← До списку аукціонів</a>
+  </div>
+
+  <div class="lot-detail__grid">
+    <!-- Ліва колонка: зображення -->
+    <div class="lot-detail__media">
+      <img src="<%= lot.imageUrl %>" alt="<%= lot.title %>" class="lot-detail__img">
+      <div class="lot-detail__status status--<%= lot.status %>">
+        <%= lot.status === 'active' ? '🟢 Торги активні' : '🔴 Торги зупинено' %>
+      </div>
+
+      <!-- URL для переходу -->
+      <div class="lot-url-box">
+        <span class="lot-url-label">🔗 Посилання на лот</span>
+        <code class="lot-url-code"><%= lotUrl %></code>
+        <button class="btn btn--ghost btn--sm" onclick="copyUrl('<%= lotUrl %>')">Копіювати</button>
+      </div>
+    </div>
+
+    <!-- Права колонка: деталі -->
+    <div class="lot-detail__info">
+      <h1 class="lot-detail__title"><%= lot.title %></h1>
+
+      <div class="lot-meta">
+        <span>👤 Власник: <strong><%= lot.ownerName %></strong></span>
+        <span>📅 <%= new Date(lot.createdAt).toLocaleDateString('uk-UA') %></span>
+      </div>
+
+      <p class="lot-detail__desc"><%= lot.description %></p>
+
+      <div class="lot-detail__keywords">
+        <% (lot.keywords || []).forEach(kw => { %>
+          <a href="/?q=<%= encodeURIComponent(kw) %>" class="keyword-tag keyword-tag--link"><%= kw %></a>
+        <% }) %>
+      </div>
+
+      <!-- Ціни -->
+      <div class="price-block">
+        <div class="price-item">
+          <span class="price-item__label">Стартова ціна</span>
+          <span class="price-item__value price-item__value--start">
+            <%= lot.startPrice.toLocaleString('uk-UA') %> ₴
+          </span>
+        </div>
+        <div class="price-item price-item--current">
+          <span class="price-item__label">
+            <%= lot.bids.length ? 'Поточна ставка' : 'Ставок ще немає' %>
+          </span>
+          <span class="price-item__value price-item__value--big">
+            <%= lot.currentPrice.toLocaleString('uk-UA') %> ₴
+          </span>
+        </div>
+      </div>
+
+      <!-- Дії для звичайного користувача: зробити ставку -->
+      <% if (!isOwner && lot.status === 'active') { %>
+        <div class="bid-form-box">
+          <h3 class="bid-form-box__title">Зробити ставку</h3>
+          <form action="/lots/<%= lot.id %>/bid" method="POST" class="bid-form">
+            <div class="bid-form__row">
+              <input
+                type="number"
+                name="amount"
+                class="bid-input"
+                placeholder="Введіть суму..."
+                min="<%= lot.currentPrice + 1 %>"
+                step="1"
+                required
+              >
+              <span class="bid-currency">₴</span>
+            </div>
+            <p class="bid-hint">Ставка має бути більше: <strong><%= lot.currentPrice.toLocaleString('uk-UA') %> ₴</strong></p>
+            <button type="submit" class="btn btn--primary btn--full">🔨 Зробити ставку</button>
+          </form>
+        </div>
+      <% } else if (!isOwner && lot.status === 'stopped') { %>
+        <div class="info-box">
+          <p>⏸ Торги на цьому лоті наразі зупинено.</p>
+        </div>
+      <% } %>
+
+      <!-- Дії для власника -->
+      <% if (isOwner) { %>
+        <div class="owner-panel">
+          <h3 class="owner-panel__title">⚙️ Панель власника</h3>
+          <div class="owner-panel__actions">
+            <% if (lot.status === 'stopped') { %>
+              <form action="/lots/<%= lot.id %>/start" method="POST">
+                <button type="submit" class="btn btn--success">▶ Запустити торги</button>
+              </form>
+            <% } else { %>
+              <form action="/lots/<%= lot.id %>/stop" method="POST">
+                <button type="submit" class="btn btn--warning">⏸ Зупинити торги</button>
+              </form>
+            <% } %>
+            <form action="/lots/<%= lot.id %>/delete" method="POST"
+              onsubmit="return confirm('Видалити лот «<%= lot.title %>»?')">
+              <button type="submit" class="btn btn--danger">🗑 Видалити лот</button>
+            </form>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Історія ставок -->
+  <div class="bids-section">
+    <h2 class="bids-section__title">📋 Історія ставок (<%= lot.bids.length %>)</h2>
+    <% if (lot.bids.length === 0) { %>
+      <div class="empty-state empty-state--sm">
+        <p>Ставок ще немає. Будьте першим!</p>
+      </div>
+    <% } else { %>
+      <div class="bids-table-wrap">
+        <table class="bids-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Учасник</th>
+              <th>Сума</th>
+              <th>Час</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% [...lot.bids].reverse().forEach((bid, i) => { %>
+              <tr class="<%= i === 0 ? 'bids-table__row--top' : '' %>">
+                <td><%= i === 0 ? '🏆' : lot.bids.length - i %></td>
+                <td><%= bid.bidderName %></td>
+                <td class="bid-amount"><%= bid.amount.toLocaleString('uk-UA') %> ₴</td>
+                <td class="bid-time"><%= new Date(bid.createdAt).toLocaleString('uk-UA') %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
