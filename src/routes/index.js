@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const lotController = require('../controllers/lotController');
 const ormRoutes = require('./orm');
+const apiRoutes = require('../api/routes');
+const apiTesterRoutes = require('./api-tester');
 
 // Головна сторінка — список активних лотів + пошук
 router.get('/', lotController.index);
@@ -35,5 +37,11 @@ router.post('/lots/:id/stop', lotController.stopTrading);
 
 // ORM demonstration routes
 router.use('/orm', ormRoutes);
+
+// REST API routes
+router.use('/api', apiRoutes);
+
+// API Tester route
+router.use('/api-tester', apiTesterRoutes);
 
 module.exports = router;

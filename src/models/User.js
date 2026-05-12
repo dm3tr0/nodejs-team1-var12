@@ -10,12 +10,20 @@ class User extends BaseModel {
     super('Users', {
       id: 'id',
       name: 'name',
-      email: 'email'
+      email: 'email',
+      password: 'password',
+      role: 'role',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at'
     });
     
     this.id = data.id;
     this.name = data.name;
     this.email = data.email;
+    this.password = data.password;
+    this.role = data.role || 'user';
+    this.createdAt = data.createdAt || new Date();
+    this.updatedAt = data.updatedAt || new Date();
   }
 
   /**
@@ -25,7 +33,11 @@ class User extends BaseModel {
     return new User({
       id: row.id,
       name: row.name,
-      email: row.email
+      email: row.email,
+      password: row.password,
+      role: row.role,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
     });
   }
 
