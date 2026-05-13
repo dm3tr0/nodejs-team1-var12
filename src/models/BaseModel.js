@@ -8,6 +8,7 @@ const { getPool } = require('../db/pool');
 class BaseModel {
   constructor(tableName, fields = {}) {
     this.tableName = tableName;
+    this.constructor.tableName = tableName;
     this.fields = fields;
     this.pool = null;
   }
@@ -108,9 +109,14 @@ class BaseModel {
   /**
    * READ ALL - Find all records
    */
+  static getTableName() {
+    return this.tableName || (new this()).tableName;
+  }
+
   static async findAll() {
     const pool = await getPool();
-    const sql = `SELECT * FROM ${this.prototype.tableName}`;
+    const tableName = this.getTableName();
+    const sql = `SELECT * FROM ${tableName}`;
     const result = await pool.query(sql);
     return result[0].map(row => this.fromRow(row));
   }
@@ -120,7 +126,8 @@ class BaseModel {
    */
   static async findById(id) {
     const pool = await getPool();
-    const sql = `SELECT * FROM ${this.prototype.tableName} WHERE id = ?`;
+    const tableName = this.getTableName();
+    const sql = `SELECT * FROM ${tableName} WHERE id = ?`;
     const result = await pool.query(sql, [id]);
     return result[0].length ? this.fromRow(result[0][0]) : null;
   }
@@ -132,7 +139,8 @@ class BaseModel {
     const pool = await getPool();
     const whereClause = Object.keys(criteria).map(key => `${key} = ?`).join(' AND ');
     const values = Object.values(criteria);
-    const sql = `SELECT * FROM ${this.prototype.tableName} WHERE ${whereClause}`;
+    const tableName = this.getTableName();
+    const sql = `SELECT * FROM ${tableName} WHERE ${whereClause}`;
     const result = await pool.query(sql, values);
     return result[0].map(row => this.fromRow(row));
   }

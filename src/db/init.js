@@ -15,21 +15,28 @@ async function initializeDatabase() {
 
     // First connect without specifying database to create it
     const tempConfig = { ...config };
-    delete tempConfig.database;
+    const dbName = tempConfig.database || 'auction';
+    tempConfig.database = undefined;
     
     const tempPool = mysql.createPool(tempConfig);
     const connection = await tempPool.getConnection();
+    
+    if (!dbName) {
+      throw new Error('Database name is not configured. Set DB_DATABASE in .env or environment variables.');
+    }
 
     try {
       // Create database if it doesn't exist
-      await connection.query(`CREATE DATABASE IF NOT EXISTS ${config.database}`);
-      console.log(`✅ Database '${config.database}' created or already exists`);
+      await connection.query('CREATE DATABASE IF NOT EXISTS ??', [dbName]);
+      console.log(`✅ Database '${dbName}' created or already exists`);
+
     } finally {
       connection.release();
       await tempPool.end();
     }
 
     // Now connect to the specific database
+    config.database = dbName;
     const pool = await getPool();
     
     // Create tables if they don't exist
@@ -105,8 +112,64 @@ async function createTables(pool) {
     }
   }
 
-  // Run migrations for existing tables
-  await runMigrations(pool);
+  // Alter existing tables to add missing columns
+  await alterTables(pool);
+}
+
+/**
+ * Alter existing tables to add missing columns
+ */
+async function alterTables(pool) {
+  try {
+    // Check and add password column to Users table
+    const passwordColumnExists = await columnExists(pool, 'Users', 'password');
+    if (!passwordColumnExists) {
+      await pool.query('ALTER TABLE Users ADD COLUMN password VARCHAR(255) NOT NULL DEFAULT ""');
+      console.log('✅ Added password column to Users table');
+    }
+
+    // Check and add role column to Users table
+    const roleColumnExists = await columnExists(pool, 'Users', 'role');
+    if (!roleColumnExists) {
+      await pool.query('ALTER TABLE Users ADD COLUMN role VARCHAR(20) DEFAULT "user"');
+      console.log('✅ Added role column to Users table');
+    }
+
+    // Check and add created_at column to Users table
+    const createdAtColumnExists = await columnExists(pool, 'Users', 'created_at');
+    if (!createdAtColumnExists) {
+      await pool.query('ALTER TABLE Users ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP');
+      console.log('✅ Added created_at column to Users table');
+    }
+
+    // Check and add updated_at column to Users table
+    const updatedAtColumnExists = await columnExists(pool, 'Users', 'updated_at');
+    if (!updatedAtColumnExists) {
+      await pool.query('ALTER TABLE Users ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
+      console.log('✅ Added updated_at column to Users table');
+    }
+
+  } catch (error) {
+    console.error('❌ Failed to alter tables:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Check if a column exists in a table
+ */
+async function columnExists(pool, tableName, columnName) {
+  try {
+    const result = await pool.query(`
+      SELECT COLUMN_NAME
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?
+    `, [tableName, columnName]);
+    return result[0].length > 0;
+  } catch (error) {
+    console.error(`❌ Failed to check if column ${columnName} exists in ${tableName}:`, error.message);
+    return false;
+  }
 }
 
 /**
