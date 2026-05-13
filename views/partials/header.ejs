@@ -16,12 +16,20 @@
     </a>
     <div class="navbar-links">
       <a href="/" class="nav-link">Аукціони</a>
-      <a href="/my-lots" class="nav-link">Мої лоти</a>
-      <a href="/lots/new" class="nav-btn">+ Новий лот</a>
+      <% if (typeof currentUser !== 'undefined' && currentUser) { %>
+        <a href="/my-lots" class="nav-link">Мої лоти</a>
+        <a href="/lots/new" class="nav-btn">+ Новий лот</a>
+      <% } %>
     </div>
     <div class="navbar-user">
       <% if (typeof currentUser !== 'undefined' && currentUser) { %>
         <span class="user-badge">👤 <%= currentUser.name %></span>
+        <form action="/auth/logout" method="POST" style="display: inline;">
+          <button type="submit" class="btn btn-link">Вийти</button>
+        </form>
+      <% } else { %>
+        <a href="/auth/login" class="nav-link">Увійти</a>
+        <a href="/auth/register" class="nav-link">Реєстрація</a>
       <% } %>
     </div>
   </nav>

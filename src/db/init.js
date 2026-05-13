@@ -54,7 +54,11 @@ async function createTables(pool) {
         CREATE TABLE IF NOT EXISTS Users (
           id VARCHAR(50) PRIMARY KEY,
           name VARCHAR(100) NOT NULL,
-          email VARCHAR(100) UNIQUE NOT NULL
+          email VARCHAR(100) UNIQUE NOT NULL,
+          password VARCHAR(255) NOT NULL,
+          role VARCHAR(20) DEFAULT 'user',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
       `
     },
@@ -99,6 +103,41 @@ async function createTables(pool) {
       console.error(`❌ Failed to create table '${table.name}':`, error.message);
       throw error;
     }
+  }
+
+  // Run migrations for existing tables
+  await runMigrations(pool);
+}
+
+/**
+ * Run database migrations for existing tables
+ */
+async function runMigrations(pool) {
+  console.log('🔄 Running database migrations...');
+
+  try {
+    // Check if Users table has password column
+    const [columns] = await pool.query(`
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'Users' AND COLUMN_NAME = 'password'
+    `, [config.database]);
+
+    if (columns.length === 0) {
+      console.log('📝 Adding password column to Users table...');
+      await pool.query(`
+        ALTER TABLE Users 
+        ADD COLUMN password VARCHAR(255) NOT NULL DEFAULT '',
+        ADD COLUMN role VARCHAR(20) DEFAULT 'user',
+        ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      `);
+      console.log('✅ Users table migrated successfully');
+    } else {
+      console.log('✅ Users table already has required columns');
+    }
+  } catch (error) {
+    console.error('❌ Migration failed:', error.message);
+    // Don't throw error for migrations, just log it
   }
 }
 

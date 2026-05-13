@@ -5,9 +5,6 @@
 
 const lotService = require('../services/lotService');
 
-// Поточний "сесійний" користувач (заглушка — в реальному застосунку через сесії/JWT)
-const CURRENT_USER = { id: 'user-001', name: 'Дмитро Р.' };
-
 // ─── ГОЛОВНА: список активних лотів ──────────────────────────────────────
 async function index(req, res) {
   try {
@@ -20,7 +17,7 @@ async function index(req, res) {
       title: 'Активні аукціони',
       lots,
       query,
-      currentUser: CURRENT_USER,
+      currentUser: req.user || null,
       message: req.query.message || null,
       error: req.query.error || null,
     });
@@ -36,14 +33,14 @@ async function show(req, res) {
     if (!lot) return res.status(404).render('error', { title: 'Не знайдено', message: 'Лот не знайдено' });
 
     const lotUrl = lotService.generateLotUrl(lot.id, `${req.protocol}://${req.get('host')}`);
-    const isOwner = lot.ownerId === CURRENT_USER.id;
+    const isOwner = req.user && lot.ownerId === req.user.id;
 
     res.render('lots/show', {
       title: lot.title,
       lot,
       lotUrl,
       isOwner,
-      currentUser: CURRENT_USER,
+      currentUser: req.user || null,
       message: req.query.message || null,
       error: req.query.error || null,
     });
@@ -56,7 +53,7 @@ async function show(req, res) {
 function newForm(req, res) {
   res.render('lots/new', {
     title: 'Створити лот',
-    currentUser: CURRENT_USER,
+    currentUser: req.user || null,
     error: null,
   });
 }
@@ -66,14 +63,14 @@ async function create(req, res) {
   try {
     const lot = await lotService.createLot({
       ...req.body,
-      ownerId: CURRENT_USER.id,
-      ownerName: CURRENT_USER.name,
+      ownerId: req.user.id,
+      ownerName: req.user.name,
     });
     res.redirect(`/lots/${lot.id}?message=Лот успішно створено`);
   } catch (err) {
     res.render('lots/new', {
       title: 'Створити лот',
-      currentUser: CURRENT_USER,
+      currentUser: req.user || null,
       error: err.message,
     });
   }
@@ -83,8 +80,8 @@ async function create(req, res) {
 async function bid(req, res) {
   try {
     await lotService.placeBid(req.params.id, {
-      bidderId: CURRENT_USER.id,
-      bidderName: CURRENT_USER.name,
+      bidderId: req.user.id,
+      bidderName: req.user.name,
       amount: req.body.amount,
     });
     res.redirect(`/lots/${req.params.id}?message=Ставку прийнято`);
@@ -96,7 +93,7 @@ async function bid(req, res) {
 // ─── ВИДАЛИТИ ЛОТ ────────────────────────────────────────────────────────
 async function destroy(req, res) {
   try {
-    await lotService.deleteLot(req.params.id, CURRENT_USER.id);
+    await lotService.deleteLot(req.params.id, req.user.id);
     res.redirect('/?message=Лот видалено');
   } catch (err) {
     res.redirect(`/lots/${req.params.id}?error=${encodeURIComponent(err.message)}`);
@@ -106,7 +103,7 @@ async function destroy(req, res) {
 // ─── ЗАПУСТИТИ ТОРГИ ──────────────────────────────────────────────────────
 async function startTrading(req, res) {
   try {
-    await lotService.startTrading(req.params.id, CURRENT_USER.id);
+    await lotService.startTrading(req.params.id, req.user.id);
     res.redirect(`/lots/${req.params.id}?message=Торги розпочато`);
   } catch (err) {
     res.redirect(`/lots/${req.params.id}?error=${encodeURIComponent(err.message)}`);
@@ -116,7 +113,7 @@ async function startTrading(req, res) {
 // ─── ЗУПИНИТИ ТОРГИ ───────────────────────────────────────────────────────
 async function stopTrading(req, res) {
   try {
-    await lotService.stopTrading(req.params.id, CURRENT_USER.id);
+    await lotService.stopTrading(req.params.id, req.user.id);
     res.redirect(`/lots/${req.params.id}?message=Торги зупинено`);
   } catch (err) {
     res.redirect(`/lots/${req.params.id}?error=${encodeURIComponent(err.message)}`);
@@ -126,11 +123,11 @@ async function stopTrading(req, res) {
 // ─── МОЇ ЛОТИ ────────────────────────────────────────────────────────────
 async function myLots(req, res) {
   try {
-    const lots = await lotService.getLotsByOwner(CURRENT_USER.id);
+    const lots = await lotService.getLotsByOwner(req.user.id);
     res.render('lots/my', {
       title: 'Мої лоти',
       lots,
-      currentUser: CURRENT_USER,
+      currentUser: req.user || null,
       message: req.query.message || null,
     });
   } catch (err) {
@@ -144,7 +141,7 @@ function ioDemo(req, res) {
     res.render('lots/io-demo', {
       title: 'Демо методів вводу-виводу',
       results,
-      currentUser: CURRENT_USER,
+      currentUser: req.user || null,
     });
   });
 }

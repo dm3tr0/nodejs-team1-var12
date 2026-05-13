@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express    = require('express');
 const path       = require('path');
+const cookieParser = require('cookie-parser');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const routes     = require('./routes/index');
 const { getPool, closePool } = require('./db/pool');
@@ -16,6 +17,7 @@ app.set('views', path.join(__dirname, '../views'));
 // ─── Middleware ───────────────────────────────────────────────
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, '../public')));
 
 // ─── Маршрути ─────────────────────────────────────────────────

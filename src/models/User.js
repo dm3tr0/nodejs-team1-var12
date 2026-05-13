@@ -4,6 +4,7 @@
  */
 
 const BaseModel = require('./BaseModel');
+const { getPool } = require('../db/pool');
 
 class User extends BaseModel {
   constructor(data = {}) {
